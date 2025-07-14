@@ -1,13 +1,15 @@
 from backend.config import (
-    gpt4o_router,
+    gpt4o_mini,
+    gpt4o_mini_with_tools,
     gpt4o_with_tools,
     deepseek_with_tools,
+    
 )
 from backend.goal_extraction import extract_goal_details, generate_confirmation_prompt
 from backend.prompts.personas import PERSONA_PROMPTS
 from tools.goal_tools import add_goal_tool, list_goal_categories
 from langchain_core.messages import HumanMessage, SystemMessage, AIMessage, ToolMessage
-from backend.rag_utils import format_profile_and_goals
+from backend.rag_utils import format_profile_and_goals, format_profile_goals_and_moods
 
 def sanitize_history(history):
     sanitized = []
@@ -27,7 +29,7 @@ async def route_message(user_message: str):
         " If it does not fit any, reply with 'main'."
     )
     try:
-        routing_response = await gpt4o_router.ainvoke([
+        routing_response = await gpt4o_mini.ainvoke([
             SystemMessage(content=system),
             HumanMessage(content=user_message),
         ])
@@ -62,7 +64,9 @@ async def get_reply(agent_type, history, user_data=None, user_id=None):
     print(f"Getting reply for agent_type: {agent_type}, user_id: {user_id}")
     lc_messages = []
     context_text = ""
-    context_text = format_profile_and_goals(user_data) if user_data else ""
+    #context_text = format_profile_and_goals(user_data) if user_data else ""
+    # In llm_utils.py (or wherever you build context):
+    context_text = format_profile_goals_and_moods(user_data) if user_data else ""
     persona_prompt = PERSONA_PROMPTS.get(agent_type, PERSONA_PROMPTS["main"])
     lc_messages.append(SystemMessage(content=f"{context_text}\n{persona_prompt}"))
     for h in history:
@@ -79,7 +83,7 @@ async def get_reply(agent_type, history, user_data=None, user_id=None):
         "financial": gpt4o_with_tools,
         "social": gpt4o_with_tools,
         "intellectual": gpt4o_with_tools,
-        "main": deepseek_with_tools,
+        "main": gpt4o_mini_with_tools,
     }
     model = model_router.get(agent_type, gpt4o_with_tools)
     try:
@@ -116,3 +120,34 @@ async def get_reply(agent_type, history, user_data=None, user_id=None):
         import traceback
         traceback.print_exc()
         return "I'm having trouble processing that right now. Could you try rephrasing your request?"
+
+
+async def generate_chat_summary(messages):
+    """
+    Generate a short title/summary from recent chat messages.
+    """
+    lc_messages = [
+        SystemMessage(
+            content=(
+                "You're a helpful assistant that creates short, concise titles (max 4 words) "
+                "to summarize a conversation. Respond with only the title text."
+            )
+        )
+    ]
+
+    # Add only first few user+bot messages
+    for msg in messages[:6]:  # up to 3 pairs
+        role = msg.get("role")
+        content = msg.get("content")
+        if role == "user":
+            lc_messages.append(HumanMessage(content=content))
+        elif role == "assistant":
+            lc_messages.append(AIMessage(content=content))
+
+    try:
+        response = await gpt4o_with_tools.ainvoke(lc_messages)
+        summary = response.content.strip().strip('"')  # Remove extra quotes
+        return summary[:50] or "Chat Summary"
+    except Exception as e:
+        print("Summary generation failed:", e)
+        return "Chat Summary"

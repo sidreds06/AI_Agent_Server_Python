@@ -1,5 +1,5 @@
 import re
-from backend.config import gpt4o_router
+from backend.config import gpt4o
 
 async def extract_goal_details(user_message: str, conversation_history: list = None) -> dict:
     details = {
@@ -50,7 +50,7 @@ async def extract_goal_details(user_message: str, conversation_history: list = N
             break
     # LLM fallback for goal name
     if not details["goal_name"]:
-        llm_title = await gpt4o_router.ainvoke([
+        llm_title = await gpt4o.ainvoke([
             {
                 "role": "system",
                 "content": "Return a concise (≤50 chars) goal title:"

@@ -9,3 +9,6 @@ class ChatRequest(BaseModel):
     message: str
     history: List[ChatTurn] = []
     uid: str = None
+
+class SummaryRequest(BaseModel):
+    messages: List[dict]

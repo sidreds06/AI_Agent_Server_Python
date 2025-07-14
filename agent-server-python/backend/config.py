@@ -8,19 +8,24 @@ load_dotenv()
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY")
 
-gpt4o_router = ChatOpenAI(
+# GPT-4o-mini
+gpt4o_mini = ChatOpenAI(
     model="gpt-4o-mini",
-    openai_api_key=OPENAI_API_KEY,
+    api_key=OPENAI_API_KEY,
 )
+gpt4o_mini_with_tools = gpt4o_mini.bind_tools([add_goal_tool, list_goal_categories])
+
+# GPT-4o
 gpt4o = ChatOpenAI(
-    model="gpt-4o-mini",
-    openai_api_key=OPENAI_API_KEY,
+    model="gpt-4o",
+    api_key=OPENAI_API_KEY,
 )
 gpt4o_with_tools = gpt4o.bind_tools([add_goal_tool, list_goal_categories])
 
+# DeepSeek
 deepseek = ChatOpenAI(
     model="deepseek-chat",
-    openai_api_key=DEEPSEEK_API_KEY,
-    openai_api_base="https://api.deepseek.com/v1",
+    api_key=DEEPSEEK_API_KEY,
+    base_url="https://api.deepseek.com/v1",
 )
 deepseek_with_tools = deepseek.bind_tools([add_goal_tool, list_goal_categories])
