@@ -5,3 +5,5 @@ langchain-openai
 python-dotenv
 google-cloud-firestore
 pytz
+openai
+python-multipart
