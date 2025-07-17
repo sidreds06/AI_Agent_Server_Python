@@ -3,6 +3,13 @@ from langchain_core.tools import tool
 from datetime import datetime, timedelta
 import pytz
 
+APP_TO_DB_CATEGORY = {
+    "vocational": "occupational",
+}
+
+def to_db_category(slug):
+    return APP_TO_DB_CATEGORY.get(slug, slug)
+
 def add_goal_to_firestore(user_id, goal_name, goal_description, category_slug, 
                          timeframe="Month", reminder_enabled=True, duration_weeks=6):
     """
@@ -18,6 +25,9 @@ def add_goal_to_firestore(user_id, goal_name, goal_description, category_slug,
         duration_weeks: How many weeks the goal should run
     """
     db = firestore.Client()
+    
+    # Map app slug to db slug
+    category_slug = to_db_category(category_slug)
     
     # Look up the category
     cat_docs = db.collection("goals_categories").where("cat_slug", "==", category_slug).stream()
@@ -81,7 +91,6 @@ def add_goal_tool(user_id: str, goal_name: str, goal_description: str, category_
         )
         print("INSIDE TOOL RESULT:", result, type(result))
         
-        # Ensure we return a serializable dict
         if isinstance(result, dict):
             # Convert datetime objects to strings for JSON serialization
             serializable_result = {}
@@ -100,7 +109,7 @@ def add_goal_tool(user_id: str, goal_name: str, goal_description: str, category_
         print(f"Error in add_goal_tool: {e}")
         return {"error": str(e), "success": False}
 
-# Optional: Add a tool to list available categories
+
 @tool("list_goal_categories")
 def list_goal_categories():
     """List all available wellness dimension categories for goals."""

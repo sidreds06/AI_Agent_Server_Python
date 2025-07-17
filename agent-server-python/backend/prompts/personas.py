@@ -11,7 +11,6 @@ symbols as the original hard-coded version:
     MENTAL_FULL,    PHYSICAL_FULL,    … (eight *_FULL variables)
     PERSONA_PROMPTS   – dict with persona keys plus "main"
 
-If personas.yaml is missing you’ll get a FileNotFoundError at import time.
 """
 
 from __future__ import annotations
@@ -35,21 +34,36 @@ except FileNotFoundError as err:
     ) from err
 
 # ---------------------------------------------------------------------------
-# Shared snippets
+# Shared guidance blocks
 # ---------------------------------------------------------------------------
 
 RESPONSE_STYLE: str = dedent(_DATA["response_style"]).strip()
 _BOUNDARIES_COMMON: str = dedent(_DATA["boundaries_common"]).strip()
-_SAFETY: str = dedent(_DATA["safety_escalation"]).strip()
+_PROFESSIONAL_BOUNDARIES: str = dedent(_DATA["professional_boundaries"]).strip()
+_USER_CONTEXT_HANDLING: str = dedent(_DATA["user_context_handling"]).strip()
+_CONVERSATION_CONTINUITY: str = dedent(_DATA["conversation_continuity"]).strip()
+_PERSONA_SWITCHING: str = dedent(_DATA["persona_switching"]).strip()
+_SAFETY_ESCALATION: str = dedent(_DATA["safety_escalation"]).strip()
+_CRISIS_RESOURCES: str = dedent(_DATA["crisis_resources"]).strip()
 
-# Whether a persona should number its focus list (only “mental” in the
-# original file).  Adjust here or add a flag in YAML if you need more control.
-_NUMBERED_FOCUS = {"mental"}
+# Combine all style/guidance sections into one for easy persona prompt merging
+FULL_RESPONSE_STYLE = "\n\n".join([
+    RESPONSE_STYLE,
+    "**Boundaries Common**\n" + _BOUNDARIES_COMMON,
+    "**Professional Boundaries**\n" + _PROFESSIONAL_BOUNDARIES,
+    "**User Context Handling**\n" + _USER_CONTEXT_HANDLING,
+    "**Conversation Continuity**\n" + _CONVERSATION_CONTINUITY,
+    "**Persona Switching**\n" + _PERSONA_SWITCHING,
+    "**Safety Escalation**\n" + _SAFETY_ESCALATION,
+    "**Crisis Resources**\n" + _CRISIS_RESOURCES,
+])
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 
+# Whether a persona should number its focus list (customize here as needed)
+_NUMBERED_FOCUS = {"mental"}
 
 def _build_focus_lines(key: str, items: list[str]) -> list[str]:
     """Return formatted primary-focus lines – numbered or bulleted."""
@@ -57,9 +71,8 @@ def _build_focus_lines(key: str, items: list[str]) -> list[str]:
         return [f"{i + 1}. {item}" for i, item in enumerate(items)]
     return [f"• {item}" for item in items]
 
-
 def _compose_prompt(key: str, p: dict) -> str:
-    """Compose the persona prompt text (without RESPONSE_STYLE)."""
+    """Compose the persona prompt text (without full response style)."""
     sections: list[str] = [
         f"You are the {p['display_name']}.",
         "",
@@ -67,20 +80,12 @@ def _compose_prompt(key: str, p: dict) -> str:
         f"**Tone & Voice**\n{dedent(p['tone_voice']).strip()}",
         "**Primary Focus Areas**",
         *_build_focus_lines(key, p["primary_focus"]),
-        "**Boundaries**",
-        _BOUNDARIES_COMMON,
     ]
-
-    # Persona-specific boundary additions
+    # Persona-specific boundary additions (if any)
     if p.get("extra_boundaries"):
         sections.append(dedent(p["extra_boundaries"]).strip())
-
-    # Optional safety footer (delete if you don’t want it)
-    sections.append(_SAFETY)
-
     # Join with blank lines, remove empties
     return "\n\n".join(filter(None, sections))
-
 
 # ---------------------------------------------------------------------------
 # Build all personas
@@ -100,15 +105,15 @@ FINANCIAL_PROMPT     = _PERSONA_PROMPTS_RAW["financial"]
 SOCIAL_PROMPT        = _PERSONA_PROMPTS_RAW["social"]
 INTELLECTUAL_PROMPT  = _PERSONA_PROMPTS_RAW["intellectual"]
 
-# Combine with RESPONSE_STYLE, mirroring original file
-MENTAL_FULL        = f"{MENTAL_PROMPT}\n{RESPONSE_STYLE}"
-PHYSICAL_FULL      = f"{PHYSICAL_PROMPT}\n{RESPONSE_STYLE}"
-SPIRITUAL_FULL     = f"{SPIRITUAL_PROMPT}\n{RESPONSE_STYLE}"
-VOCATIONAL_FULL    = f"{VOCATIONAL_PROMPT}\n{RESPONSE_STYLE}"
-ENVIRONMENTAL_FULL = f"{ENVIRONMENTAL_PROMPT}\n{RESPONSE_STYLE}"
-FINANCIAL_FULL     = f"{FINANCIAL_PROMPT}\n{RESPONSE_STYLE}"
-SOCIAL_FULL        = f"{SOCIAL_PROMPT}\n{RESPONSE_STYLE}"
-INTELLECTUAL_FULL  = f"{INTELLECTUAL_PROMPT}\n{RESPONSE_STYLE}"
+# Combine with FULL_RESPONSE_STYLE for final persona prompts
+MENTAL_FULL        = f"{MENTAL_PROMPT}\n{FULL_RESPONSE_STYLE}"
+PHYSICAL_FULL      = f"{PHYSICAL_PROMPT}\n{FULL_RESPONSE_STYLE}"
+SPIRITUAL_FULL     = f"{SPIRITUAL_PROMPT}\n{FULL_RESPONSE_STYLE}"
+VOCATIONAL_FULL    = f"{VOCATIONAL_PROMPT}\n{FULL_RESPONSE_STYLE}"
+ENVIRONMENTAL_FULL = f"{ENVIRONMENTAL_PROMPT}\n{FULL_RESPONSE_STYLE}"
+FINANCIAL_FULL     = f"{FINANCIAL_PROMPT}\n{FULL_RESPONSE_STYLE}"
+SOCIAL_FULL        = f"{SOCIAL_PROMPT}\n{FULL_RESPONSE_STYLE}"
+INTELLECTUAL_FULL  = f"{INTELLECTUAL_PROMPT}\n{FULL_RESPONSE_STYLE}"
 
 # Public dict identical to the original
 PERSONA_PROMPTS: dict[str, str] = {
@@ -120,14 +125,13 @@ PERSONA_PROMPTS: dict[str, str] = {
     "financial": FINANCIAL_FULL,
     "social": SOCIAL_FULL,
     "intellectual": INTELLECTUAL_FULL,
-   "main": (
+    "main": (
         "You are **Tabi**, a compassionate, holistic wellness companion.\n"
         "Listen closely, determine which of the eight wellness dimensions (mental, physical, spiritual, vocational, environmental, financial, social, intellectual) best fits the user's needs, and respond naturally using that coach’s empathetic style.\n"
         "If the dimension is unclear, kindly ask a clarifying question first.\n"
         "Always reply warmly, practically, and conversationally, just like a caring friend would.\n\n"
-        f"{RESPONSE_STYLE}"
+        f"{FULL_RESPONSE_STYLE}"
     ),
-
 }
 
 # ---------------------------------------------------------------------------
@@ -135,4 +139,6 @@ PERSONA_PROMPTS: dict[str, str] = {
 # ---------------------------------------------------------------------------
 
 del yaml, Path, dedent, _DATA, _YAML_PATH, _compose_prompt, _build_focus_lines
-del _PERSONA_PROMPTS_RAW, _BOUNDARIES_COMMON, _SAFETY, _NUMBERED_FOCUS
+del _PERSONA_PROMPTS_RAW, _BOUNDARIES_COMMON, _PROFESSIONAL_BOUNDARIES
+del _USER_CONTEXT_HANDLING, _CONVERSATION_CONTINUITY, _PERSONA_SWITCHING
+del _SAFETY_ESCALATION, _CRISIS_RESOURCES, _NUMBERED_FOCUS

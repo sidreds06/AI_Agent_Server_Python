@@ -90,7 +90,7 @@ def generate_confirmation_prompt(details: dict) -> str:
     if "goal_name" in missing:
         prompts.append("What would you like to name this goal?")
     if "category_slug" in missing:
-        prompts.append("Which wellness area does this goal focus on? (Physical, Mental, Spiritual, Social, Financial, Intellectual, Career, or Environmental)")
+        prompts.append("Which wellness area does this goal focus on? (Physical, Mental, Spiritual, Social, Financial, Vocational, or Environmental)")
     if len(prompts) == 1:
         return prompts[0]
     elif len(prompts) == 2:

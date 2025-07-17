@@ -8,6 +8,10 @@ load_dotenv()
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY")
 
+os.environ["LANGCHAIN_TRACING_V2"] = "true"
+os.environ["LANGCHAIN_HIDE_INPUTS"] = "false"
+os.environ["LANGCHAIN_HIDE_OUTPUTS"] = "false"
+
 # GPT-4o-mini
 gpt4o_mini = ChatOpenAI(
     model="gpt-4o-mini",
